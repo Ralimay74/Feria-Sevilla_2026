@@ -20,14 +20,19 @@ WORKDIR /var/www/html
 # Copiar archivos
 COPY . .
 
-# Instalar dependencias SIN extensiones platform (para evitar errores)
-RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
+# Copiar .env.example a .env (si no existe .env)
+RUN if [ ! -f .env ]; then cp .env.example .env; fi
 
-# Generar key si no existe
-RUN php artisan key:generate --force
+# Instalar dependencias
+RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
 # Permisos
 RUN chmod -R 777 storage bootstrap/cache
+
+# Optimizar Laravel
+RUN php artisan config:cache
+RUN php artisan route:cache
+RUN php artisan view:cache
 
 # Nginx config
 COPY nginx.conf /etc/nginx/sites-available/default
