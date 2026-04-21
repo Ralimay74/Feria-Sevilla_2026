@@ -1,5 +1,8 @@
 FROM php:8.2-fpm
 
+# Configurar PHP-FPM para usar puerto TCP en lugar de socket
+RUN sed -i 's/listen = .*/listen = 127.0.0.1:9000/' /usr/local/etc/php-fpm.d/www.conf
+
 # Instalar dependencias básicas
 RUN apt-get update && apt-get install -y \
     nginx \
@@ -20,7 +23,7 @@ WORKDIR /var/www/html
 # Copiar archivos
 COPY . .
 
-# Copiar .env.example a .env (si no existe .env)
+# Copiar .env.example a .env
 RUN if [ ! -f .env ]; then cp .env.example .env; fi
 
 # Instalar dependencias
