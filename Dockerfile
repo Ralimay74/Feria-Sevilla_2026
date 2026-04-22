@@ -1,6 +1,6 @@
 FROM php:8.2-fpm
 
-# Instalar dependencias
+# Instalar dependencias (incluyendo netcat para el script de inicio)
 RUN apt-get update && apt-get install -y \
     nginx \
     git \
@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
+    netcat-openbsd \
     && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 
 # Instalar Composer
@@ -24,12 +25,13 @@ RUN if [ ! -f .env ]; then cp .env.example .env; fi
 # Instalar dependencias
 RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
-# Permisos
+# Permisos (usuario correcto es www-data)
 RUN chown -R www-data:www-data storage bootstrap/cache
 RUN chmod -R 775 storage bootstrap/cache
 
-# Configurar PHP-FPM para puerto TCP
-RUN echo "listen = 127.0.0.1:9000" > /usr/local/etc/php-fpm.d/docker.conf
+# 🔧 CORRECCIÓN CLAVE: Modificar www.conf para escuchar en TCP 127.0.0.1:9000
+# Eliminamos la línea anterior que creaba docker.conf y usamos esta:
+RUN sed -i 's/^listen =.*/listen = 127.0.0.1:9000/' /usr/local/etc/php-fpm.d/www.conf
 
 # Optimizar Laravel
 RUN php artisan config:cache
