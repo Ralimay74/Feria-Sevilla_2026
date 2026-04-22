@@ -1,13 +1,16 @@
 #!/bin/bash
+set -e
 
-# Crear socket de PHP-FPM si no existe
-mkdir -p /var/run/php
-
-# Iniciar PHP-FPM en segundo plano
+# Iniciar PHP-FPM en background
 php-fpm -D
 
-# Esperar a que PHP-FPM esté listo
-sleep 2
+# Esperar a que esté listo
+until nc -z 127.0.0.1 9000; do
+  echo "⏳ Esperando PHP-FPM..."
+  sleep 1
+done
 
-# Iniciar Nginx en primer plano
+echo "✅ PHP-FPM listo"
+
+# Iniciar Nginx en foreground
 nginx -g "daemon off;"

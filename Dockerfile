@@ -1,9 +1,6 @@
 FROM php:8.2-fpm
 
-# Configurar PHP-FPM para usar puerto TCP en lugar de socket
-RUN sed -i 's/listen = .*/listen = 127.0.0.1:9000/' /usr/local/etc/php-fpm.d/www.conf
-
-# Instalar dependencias básicas
+# Instalar dependencias
 RUN apt-get update && apt-get install -y \
     nginx \
     git \
@@ -17,33 +14,33 @@ RUN apt-get update && apt-get install -y \
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Directorio de trabajo
 WORKDIR /var/www/html
 
-# Copiar archivos
 COPY . .
 
-# Copiar .env.example a .env
+# Copiar .env.example si no hay .env
 RUN if [ ! -f .env ]; then cp .env.example .env; fi
 
 # Instalar dependencias
 RUN composer install --no-interaction --optimize-autoloader --no-dev --ignore-platform-reqs
 
 # Permisos
-RUN chmod -R 777 storage bootstrap/cache
+RUN chown -R www-data:www-data storage bootstrap/cache
+RUN chmod -R 775 storage bootstrap/cache
+
+# Configurar PHP-FPM para puerto TCP
+RUN echo "listen = 127.0.0.1:9000" > /usr/local/etc/php-fpm.d/docker.conf
 
 # Optimizar Laravel
 RUN php artisan config:cache
 RUN php artisan route:cache
 RUN php artisan view:cache
 
-# Nginx config
+# Copiar config de Nginx
 COPY nginx.conf /etc/nginx/sites-available/default
 
-# Puerto
 EXPOSE 8080
 
-# Script de inicio
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
